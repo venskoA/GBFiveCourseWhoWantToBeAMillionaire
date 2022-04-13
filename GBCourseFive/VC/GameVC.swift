@@ -8,8 +8,13 @@
 import Foundation
 import UIKit
 
-class GameVC: UIViewController {
+enum Difficulty {
+    case medium
+    case hard
+    case custom
+}
 
+class GameVC: UIViewController {
     @IBOutlet weak var quastionLabel: UILabel!
     @IBOutlet weak var firstAnswer: UIButton!
     @IBOutlet weak var secondAnswer: UIButton!
@@ -17,28 +22,46 @@ class GameVC: UIViewController {
     @IBOutlet weak var fourAnswer: UIButton!
     @IBOutlet weak var nextQuestion: UIButton!
     @IBOutlet weak var moneyLabel: UILabel!
+    @IBOutlet weak var numberTrueAnswer: UILabel!
 
     var complition: ((DataGame) -> ())?
 
+    var difficulty: Difficulty = GameDifficultSingletone.shared.getDifficult()
+
     var trueFalse = true
     var numberInArr = 0
-    let questions = ArrQuestions().allQuestions()
+//    let questions = ArrQuestions().allQuestions()
+    var questions: [Question]?
     var question: Question?
+
+    var strategy: CreateStraetgyProtocolo {
+        switch difficulty {
+        case .medium:
+            return QuestionInOrder()
+        case .hard:
+            return QuestionRandom()
+        case .custom:
+            return QuestionCansom()
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         createStart()
+        GameSingletone.shared.number.addObserver(GameVC(), options: [.new]) { name, _ in
+            self.numberTrueAnswer.text = "Number question \(name)"
+        }
     }
 }
 
 extension GameVC {
-
     func createStart() {
-        nextQuestion.setTitle("Next Question", for: .normal)
+        questions = strategy.createQuestion()
 
-        question = questions[numberInArr]
+        question = questions?[numberInArr]
         createUI(question: question!)
 
+        nextQuestion.setTitle("Next Question", for: .normal)
         firstAnswer.tag = 1
         secondAnswer.tag = 2
         theerdAnswer.tag = 3
@@ -70,9 +93,12 @@ extension GameVC {
     }
 
     func createUI(question date: Question) {
+//        let uiNumber = numberInArr + 1
+//        guard let questions = questions else { return }
+
         quastionLabel.numberOfLines = 0
         quastionLabel.text = date.question
-        moneyLabel.text = "You can win = " + date.money + "rub"
+        moneyLabel.text = "You can win = " + date.money + " rub"
         firstAnswer.setTitle(date.answerOne, for: .normal)
         secondAnswer.setTitle(date.answerTwo, for: .normal)
         theerdAnswer.setTitle(date.answerThree, for: .normal)
@@ -81,12 +107,15 @@ extension GameVC {
 
     func touchNextQuestion() {
         if view.backgroundColor == .green || view.backgroundColor == .red {
+            guard let questions = questions else { return }
             view.backgroundColor = .white
             if trueFalse && numberInArr < questions.count - 1 {
                 numberInArr += 1
                 question = questions[numberInArr]
                 guard let question = question else { return }
                 createUI(question: question)
+                GameSingletone.shared.number.value = String(numberInArr)
+//                GameSingletone.shared.newObser(String(numberInArr))
             }
             else {
                 addInSingletone()
@@ -110,6 +139,7 @@ extension GameVC {
     }
 
     func addInSingletone() {
+        guard let questions = questions else { return }
         let percent = (Double(numberInArr) / Double(questions.count)) * 100
         var winMoney = String()
 

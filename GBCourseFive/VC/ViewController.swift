@@ -25,6 +25,8 @@ class ViewController: UIViewController {
             destination.complition = {[weak self] result in
                 self?.dataLabel.text = "Number question = \(result.allQuestion), true answer = \(result.trueQuestion) "
             }
+        case "SettingMenu":
+            guard let destination = segue.destination as? SettingMenu else { return }
         default:
             break
         }
